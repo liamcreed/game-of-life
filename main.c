@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -87,6 +86,8 @@ int main(void)
     //"f_color = vec4(o_uv, 0.0f,  1.0f);\n"
     "}\0";
 
+    glEnable(GL_FRAMEBUFFER_SRGB); 
+
     unsigned int v_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(v_shader, 1, &v_shader_src, NULL);
     glCompileShader(v_shader);
@@ -149,10 +150,10 @@ int main(void)
         {
             int random  =  (rand() % 2);
             Cell cell;
-            //if(random > 8)
-             //   cell.state = 1;
-           // else
-              //  cell.state = 0;
+            if(random > 8)
+                cell.state = 1;
+            else
+                cell.state = 0;
 
             cell.r = 0;
             cell.g = 220;
@@ -185,11 +186,6 @@ int main(void)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture); 
 
-
-    //must be under 1
-    float update_speed = 0.1;
-    int update = 0;
-
     //FPS
     double previous_time = glfwGetTime();
     int frame_count = 0;
@@ -215,61 +211,54 @@ int main(void)
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        if(update < 1 / update_speed)
+        for (int x = 0; x < GRID_SIZE; x++)
         {
-            update+=1;
-        }
-        else if(update == 1 / update_speed)
-        {
-            update = 0;
-            for (int x = 0; x < GRID_SIZE; x++)
+            for (int y = 0; y < GRID_SIZE; y++)
             {
-                for (int y = 0; y < GRID_SIZE; y++)
+                int live_neighbours;
+                if(x == 0)
+                    live_neighbours =     cells_state[GRID_SIZE - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[1][y + 1].state +
+                                          cells_state[GRID_SIZE - 1][y + 0].state +                               cells_state[1][y + 0].state +
+                                          cells_state[GRID_SIZE - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[1][y - 1].state;
+                else if(x == GRID_SIZE - 1)
+                    live_neighbours =     cells_state[x - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[0][y + 1].state +
+                                          cells_state[x - 1][y + 0].state +                               cells_state[0][y + 0].state +
+                                          cells_state[x - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[0][y - 1].state;
+                else
+                    live_neighbours =     cells_state[x - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[x + 1][y + 1].state +
+                                          cells_state[x - 1][y + 0].state +                               cells_state[x + 1][y + 0].state +
+                                          cells_state[x - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[x + 1][y - 1].state;
+                
+                if(cells_state[x][y].state == ALIVE)
                 {
-                    int live_neighbours;
-                    if(x == 0)
-                        live_neighbours =     cells_state[GRID_SIZE - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[1][y + 1].state +
-                                              cells_state[GRID_SIZE - 1][y + 0].state +                               cells_state[1][y + 0].state +
-                                              cells_state[GRID_SIZE - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[1][y - 1].state;
-                    else if(x == GRID_SIZE - 1)
-                        live_neighbours =     cells_state[x - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[0][y + 1].state +
-                                              cells_state[x - 1][y + 0].state +                               cells_state[0][y + 0].state +
-                                              cells_state[x - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[0][y - 1].state;
+                    if(live_neighbours > 3 || live_neighbours < 2)
+                        cells_output[x][y].state = DEAD;
                     else
-                        live_neighbours =     cells_state[x - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[x + 1][y + 1].state +
-                                              cells_state[x - 1][y + 0].state +                               cells_state[x + 1][y + 0].state +
-                                              cells_state[x - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[x + 1][y - 1].state;
-                    
-
-                    if(cells_state[x][y].state == ALIVE)
-                    {
-                        if(live_neighbours > 3 || live_neighbours < 2)
-                            cells_output[x][y].state = DEAD;
-                        else
-                            cells_output[x][y].state = ALIVE;
-                    }
-                    if(cells_state[x][y].state == DEAD && live_neighbours == 3)
-                    {
                         cells_output[x][y].state = ALIVE;
-                    }  
                 }
-            } 
-            for (int x = 0; x < GRID_SIZE; x++)
-            {
-                for (int y = 0; y < GRID_SIZE; y++)
+                if(cells_state[x][y].state == DEAD && live_neighbours == 3)
                 {
-                    cells_state[x][y].state = cells_output[x][y].state;
-                    texture_data[(x * 4) + (y * GRID_SIZE * 4) + 0] = cells_output[x][y].state * cells_output[x][y].r;
-                    texture_data[(x * 4) + (y * GRID_SIZE * 4) + 1] = cells_output[x][y].state * cells_output[x][y].g;
-                    texture_data[(x * 4) + (y * GRID_SIZE * 4) + 2] = cells_output[x][y].state * cells_output[x][y].b;
-                    texture_data[(x * 4) + (y * GRID_SIZE * 4) + 3] = 255;
-                }
-            } 
+                    cells_output[x][y].state = ALIVE;
+                }  
+            }
         } 
+        for (int x = 0; x < GRID_SIZE; x++)
+        {
+            for (int y = 0; y < GRID_SIZE; y++)
+            {
+                cells_state[x][y].state = cells_output[x][y].state;
+                texture_data[(x * 4) + (y * GRID_SIZE * 4) + 0] = cells_output[x][y].state * cells_output[x][y].r;
+                texture_data[(x * 4) + (y * GRID_SIZE * 4) + 1] = cells_output[x][y].state * cells_output[x][y].g;
+                texture_data[(x * 4) + (y * GRID_SIZE * 4) + 2] = cells_output[x][y].state * cells_output[x][y].b;
+                texture_data[(x * 4) + (y * GRID_SIZE * 4) + 3] = 255;
+            }
+        } 
+        
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GRID_SIZE, GRID_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
         glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(unsigned int), GL_UNSIGNED_INT, 0);
     }
 
+    
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ibo);
     glDeleteProgram(shader);
