@@ -15,7 +15,7 @@ typedef struct
 
 #define ALIVE 1
 #define DEAD  0
-#define GRID_SIZE 256
+#define GRID_SIZE 128
 
 typedef struct Cell
 {
@@ -52,10 +52,10 @@ int main(void)
 
     float vertices[] = 
     {
-         1.0f,  1.0f, 1.0f,  1.0f, 1.0f,
-         1.0f, -1.0f, 1.0f,  1.0f, 0.0f,
-        -1.0f, -1.0f, 1.0f,  0.0f, 0.0f,
-        -1.0f,  1.0f, 1.0f,  0.0f, 1.0f
+         0.9f,  0.9f, 0.0f,  1.0f, 1.0f,
+         0.9f, -0.9f, 0.0f,  1.0f, 0.0f,
+        -0.9f, -0.9f, 0.0f,  0.0f, 0.0f,
+        -0.9f,  0.9f, 0.0f,  0.0f, 1.0f
     };
 
     unsigned int indices[] =
@@ -86,7 +86,8 @@ int main(void)
     //"f_color = vec4(o_uv, 0.0f,  1.0f);\n"
     "}\0";
 
-    glEnable(GL_FRAMEBUFFER_SRGB); 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
     unsigned int v_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(v_shader, 1, &v_shader_src, NULL);
@@ -149,19 +150,17 @@ int main(void)
         for (int y = 0; y < GRID_SIZE; y++)
         {
             int random  =  (rand() % 2);
-            Cell cell;
             if(random > 8)
-                cell.state = 1;
+                cells_state[x][y].state = 1;
             else
-                cell.state = 0;
+                cells_state[x][y].state = 0;
 
-            cell.r = 0;
-            cell.g = 220;
-            cell.b = 0;
-            cell.state = random;
-            cells_state[x][y] =  cell;
-            cells_output[x][y] = cell;
+            cells_state[x][y].r = 0;
+            cells_state[x][y].g = 220;
+            cells_state[x][y].b = 0;
+            cells_state[x][y].state = random;
 
+            cells_output[x][y] = cells_state[x][y];
         }
     }
     
@@ -208,7 +207,7 @@ int main(void)
         glfwSwapBuffers(glfw_window);
         glfwPollEvents();
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
         for (int x = 0; x < GRID_SIZE; x++)
@@ -250,14 +249,13 @@ int main(void)
                 texture_data[(x * 4) + (y * GRID_SIZE * 4) + 0] = cells_output[x][y].state * cells_output[x][y].r;
                 texture_data[(x * 4) + (y * GRID_SIZE * 4) + 1] = cells_output[x][y].state * cells_output[x][y].g;
                 texture_data[(x * 4) + (y * GRID_SIZE * 4) + 2] = cells_output[x][y].state * cells_output[x][y].b;
-                texture_data[(x * 4) + (y * GRID_SIZE * 4) + 3] = 255;
+                texture_data[(x * 4) + (y * GRID_SIZE * 4) + 3] = cells_output[x][y].state *  255;
             }
         } 
         
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GRID_SIZE, GRID_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, texture_data);
         glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(unsigned int), GL_UNSIGNED_INT, 0);
     }
-
     
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ibo);
