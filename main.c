@@ -13,91 +13,10 @@ typedef struct
 } Window;
 
 #define SCR_SIZE 800
-void WindowInit(Window *window)
-{
-    if (!glfwInit())
-        printf("[ERROR]: Failed to init GLFW!\n");
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-    window->glfw_window = glfwCreateWindow(SCR_SIZE, SCR_SIZE, "Game of Life", NULL, NULL);
-
-    if (!window->glfw_window)
-    {
-        glfwTerminate();
-        printf("[ERROR]: Failed to create window!\n");
-    }
-    glfwMakeContextCurrent(window->glfw_window);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        printf("[ERROR]: Failed to init glad!\n");
-    }
-
-    window->closed = 0;
-    glfwSwapInterval(0);
-}
-void WindowUpdate(Window *window)
-{
-    if (glfwWindowShouldClose(window->glfw_window))
-        window->closed = 1;
-    else
-        window->closed = 0;
-
-    glfwSwapBuffers(window->glfw_window);
-    glfwPollEvents();
-}
-void WindowDestroy(Window *window)
-{
-    glfwDestroyWindow(window->glfw_window);
-    glfwTerminate();
-}
-
-
-unsigned int CreateShader(const char* v_src, const char* f_src)
-{
-    unsigned int v_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(v_shader, 1, &v_src, NULL);
-    glCompileShader(v_shader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(v_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(v_shader, 512, NULL, infoLog);
-        printf("%s %s\n", "Failed to compile VERTEX shader!:", infoLog);
-    }
-
-    unsigned int f_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(f_shader, 1, &f_src, NULL);
-    glCompileShader(f_shader);
-
-    glGetShaderiv(f_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(f_shader, 512, NULL, infoLog);
-        printf("%s %s\n", "Failed to compile FRAGMENT shader!:", infoLog);
-    }
-
-    unsigned int shader_program = glCreateProgram();
-    glAttachShader(shader_program, v_shader);
-    glAttachShader(shader_program, f_shader);
-    glLinkProgram(shader_program);
-
-    glDeleteShader(v_shader);
-    glDeleteShader(f_shader);
-
-    return shader_program;
-}
-
 
 #define ALIVE 1
 #define DEAD  0
-#define GRID_SIZE 1024
+#define GRID_SIZE 128
 
 typedef struct Cell
 {
@@ -108,16 +27,37 @@ typedef struct Cell
 
 int main(void)
 {
-    
-    Window window;
-    WindowInit(&window);
+    GLFWwindow* glfw_window;
+    if (!glfwInit())
+        printf("[ERROR]: Failed to init GLFW!\n");
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+    glfw_window = glfwCreateWindow(SCR_SIZE, SCR_SIZE, "Game of Life", NULL, NULL);
+
+    if (!glfw_window)
+    {
+        glfwTerminate();
+        printf("[ERROR]: Failed to create window!\n");
+    }
+    glfwMakeContextCurrent(glfw_window);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        printf("[ERROR]: Failed to init glad!\n");
+    }
+
+    glfwSwapInterval(1);
 
     float vertices[] = 
     {
-         1.0f,  1.0f, 0.0f,  1.0f, 1.0f,
-         1.0f, -1.0f, 0.0f,  1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,  0.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,  0.0f, 1.0f
+         0.9f,  0.9f, 0.0f,  1.0f, 1.0f,
+         0.9f, -0.9f, 0.0f,  1.0f, 0.0f,
+        -0.9f, -0.9f, 0.0f,  0.0f, 0.0f,
+        -0.9f,  0.9f, 0.0f,  0.0f, 1.0f
     };
 
     unsigned int indices[] =
@@ -148,7 +88,37 @@ int main(void)
     //"f_color = vec4(o_uv, 0.0f,  1.0f);\n"
     "}\0";
 
-    unsigned int shader = CreateShader(v_shader_src, f_shader_src);
+    unsigned int v_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(v_shader, 1, &v_shader_src, NULL);
+    glCompileShader(v_shader);
+
+    int success;
+    char infoLog[512];
+    glGetShaderiv(v_shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(v_shader, 512, NULL, infoLog);
+        printf("%s %s\n", "Failed to compile VERTEX shader!:", infoLog);
+    }
+
+    unsigned int f_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(f_shader, 1, &f_shader_src, NULL);
+    glCompileShader(f_shader);
+
+    glGetShaderiv(f_shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(f_shader, 512, NULL, infoLog);
+        printf("%s %s\n", "Failed to compile FRAGMENT shader!:", infoLog);
+    }
+
+    unsigned int shader = glCreateProgram();
+    glAttachShader(shader, v_shader);
+    glAttachShader(shader, f_shader);
+    glLinkProgram(shader);
+
+    glDeleteShader(v_shader);
+    glDeleteShader(f_shader);
     glUseProgram(shader);
 
     unsigned int vao;
@@ -186,7 +156,7 @@ int main(void)
               //  cell.state = 0;
 
             cell.r = 255;
-            cell.g = 255;
+            cell.g = 0;
             cell.b = 255;
             cell.state = random;
             cells_state[x][y] =  cell;
@@ -217,12 +187,13 @@ int main(void)
     glBindTexture(GL_TEXTURE_2D, texture); 
 
 
-    float update_speed = 1;
+    float update_speed = 0.5;
     int update = 0;
 
-    while (!window.closed)
+    while (!glfwWindowShouldClose(glfw_window))
     {
-        WindowUpdate(&window);
+        glfwSwapBuffers(glfw_window);
+        glfwPollEvents();
 
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -238,9 +209,20 @@ int main(void)
             {
                 for (int y = 0; y < GRID_SIZE; y++)
                 {
-                    int live_neighbours = cells_state[x - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[x + 1][y + 1].state +
-                                          cells_state[x - 1][y + 0].state +                               cells_state[x + 1][y + 0].state +
-                                          cells_state[x - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[x + 1][y - 1].state;
+                    int live_neighbours;
+                    if(x == 0)
+                        live_neighbours =     cells_state[GRID_SIZE - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[1][y + 1].state +
+                                              cells_state[GRID_SIZE - 1][y + 0].state +                               cells_state[1][y + 0].state +
+                                              cells_state[GRID_SIZE - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[1][y - 1].state;
+                    else if(x == GRID_SIZE - 1)
+                        live_neighbours =     cells_state[x - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[0][y + 1].state +
+                                              cells_state[x - 1][y + 0].state +                               cells_state[0][y + 0].state +
+                                              cells_state[x - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[0][y - 1].state;
+                    else
+                        live_neighbours =     cells_state[x - 1][y + 1].state + cells_state[x][y + 1].state + cells_state[x + 1][y + 1].state +
+                                              cells_state[x - 1][y + 0].state +                               cells_state[x + 1][y + 0].state +
+                                              cells_state[x - 1][y - 1].state + cells_state[x][y - 1].state + cells_state[x + 1][y - 1].state;
+                    
 
                     if(cells_state[x][y].state == ALIVE)
                     {
@@ -252,8 +234,7 @@ int main(void)
                     if(cells_state[x][y].state == DEAD && live_neighbours == 3)
                     {
                         cells_output[x][y].state = ALIVE;
-                    }
-                    
+                    }  
                 }
             } 
             for (int x = 0; x < GRID_SIZE; x++)
@@ -277,5 +258,6 @@ int main(void)
     glDeleteProgram(shader);
     glDeleteVertexArrays(1, &vao);
 
-    WindowDestroy(&window); 
+    glfwDestroyWindow(glfw_window);
+    glfwTerminate();
 }
