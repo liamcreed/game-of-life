@@ -16,14 +16,13 @@ typedef struct
 
 #define ALIVE 1
 #define DEAD  0
-#define GRID_SIZE 128
+#define GRID_SIZE 256
 
 typedef struct Cell
 {
     int state;
     float r, g, b;
 }Cell;
-
 
 int main(void)
 {
@@ -54,10 +53,10 @@ int main(void)
 
     float vertices[] = 
     {
-         0.9f,  0.9f, 0.0f,  1.0f, 1.0f,
-         0.9f, -0.9f, 0.0f,  1.0f, 0.0f,
-        -0.9f, -0.9f, 0.0f,  0.0f, 0.0f,
-        -0.9f,  0.9f, 0.0f,  0.0f, 1.0f
+         1.0f,  1.0f, 1.0f,  1.0f, 1.0f,
+         1.0f, -1.0f, 1.0f,  1.0f, 0.0f,
+        -1.0f, -1.0f, 1.0f,  0.0f, 0.0f,
+        -1.0f,  1.0f, 1.0f,  0.0f, 1.0f
     };
 
     unsigned int indices[] =
@@ -155,9 +154,9 @@ int main(void)
            // else
               //  cell.state = 0;
 
-            cell.r = 255;
-            cell.g = 0;
-            cell.b = 255;
+            cell.r = 0;
+            cell.g = 220;
+            cell.b = 0;
             cell.state = random;
             cells_state[x][y] =  cell;
             cells_output[x][y] = cell;
@@ -187,11 +186,29 @@ int main(void)
     glBindTexture(GL_TEXTURE_2D, texture); 
 
 
-    float update_speed = 0.5;
+    //must be under 1
+    float update_speed = 0.1;
     int update = 0;
+
+    //FPS
+    double previous_time = glfwGetTime();
+    int frame_count = 0;
 
     while (!glfwWindowShouldClose(glfw_window))
     {
+        double current_time = glfwGetTime();
+        frame_count+=1;
+
+        if ( current_time - previous_time >= 1.0 )
+        {
+            char text[20]; 
+            sprintf(text, "%d", frame_count);   
+            glfwSetWindowTitle(glfw_window, text);
+
+            frame_count = 0;
+            previous_time = current_time;
+        }
+
         glfwSwapBuffers(glfw_window);
         glfwPollEvents();
 
